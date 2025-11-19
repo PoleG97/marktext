@@ -1,9 +1,9 @@
 /**
  * Secure Process Execution Wrapper
- * 
+ *
  * This module provides a secure wrapper for executing external processes
  * with strict whitelisting and validation to prevent command injection attacks.
- * 
+ *
  * Security features:
  * - Whitelist-based command execution
  * - Uses execFile instead of exec to prevent shell injection
@@ -39,10 +39,10 @@ function isCommandAllowed (command) {
   }
 
   const baseCommand = path.basename(command).toLowerCase()
-  
+
   // Check if command (or its basename) is in whitelist
   return ALLOWED_COMMANDS.some(allowed => {
-    return baseCommand === allowed || 
+    return baseCommand === allowed ||
            baseCommand === `${allowed}.exe` ||
            baseCommand === `${allowed}.cmd`
   })
@@ -60,7 +60,7 @@ function areArgumentsSafe (args) {
 
   // Check for suspicious patterns in arguments
   const dangerousPatterns = [
-    /[;&|`$()]/,  // Shell operators
+    /[;&|`$()]/, // Shell operators
     /\.\.[/\\]/, // Directory traversal
     /^-.*oProxyCommand/i, // SSH proxy command injection
     /^-.*ProxyCommand/i

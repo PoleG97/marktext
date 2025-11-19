@@ -1,22 +1,21 @@
 /**
  * Secure Preload Script
- * 
+ *
  * This script runs before renderer code and provides controlled access to Node.js APIs.
  * With nodeIntegration: false, this is the ONLY way for renderer to access Node APIs.
- * 
+ *
  * Security measures:
  * - Controlled require() that blocks dangerous modules (child_process, fs, etc.)
- * - Validates shell.openExternal URLs to block dangerous protocols  
+ * - Validates shell.openExternal URLs to block dangerous protocols
  * - Provides safe wrappers for necessary Node APIs
  * - Exposes process info safely without executable access
- * 
+ *
  * Note: contextIsolation is currently false for @electron/remote compatibility.
  * Future improvement: migrate to contextIsolation: true with IPC-based remote replacement.
  */
 
 const nodeRequire = require
-const { ipcRenderer, shell, clipboard, nativeImage, remote } = nodeRequire('electron')
-const path = nodeRequire('path')
+const { ipcRenderer, shell, clipboard, nativeImage } = nodeRequire('electron')
 
 // Dangerous URL protocols that should be blocked
 const DANGEROUS_PROTOCOLS = [
@@ -34,16 +33,6 @@ const BLOCKED_MODULES = [
   'original-fs'
 ]
 
-// Modules that are allowed
-const SAFE_ELECTRON_MODULES = [
-  'ipcRenderer',
-  'shell',
-  'clipboard',
-  'nativeImage',
-  'crashReporter',
-  'webFrame'
-]
-
 /**
  * Validates a URL to ensure it's safe to open
  * @param {string} url - The URL to validate
@@ -55,7 +44,7 @@ function isUrlSafe (url) {
   }
 
   const urlLower = url.toLowerCase().trim()
-  
+
   // Block dangerous protocols
   for (const protocol of DANGEROUS_PROTOCOLS) {
     if (urlLower.startsWith(protocol)) {
@@ -95,7 +84,7 @@ function secureRequire (moduleName) {
         }
       },
       clipboard,
-      nativeImage,
+      nativeImage
       // Don't expose: app, BrowserWindow, webContents, etc.
     }
   }
@@ -115,7 +104,7 @@ window.process = {
   arch: process.arch,
   versions: Object.freeze({ ...process.versions }),
   resourcesPath: process.resourcesPath,
-  env: process.env,
+  env: process.env
   // Note: We intentionally don't expose dangerous methods like exit(), abort(), etc.
 }
 

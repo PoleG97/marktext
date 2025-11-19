@@ -46,14 +46,14 @@ function removeDangerousProtocols (html) {
 
   // Find all elements with href or src attributes
   const elementsWithUrls = tempDiv.querySelectorAll('[href], [src]')
-  
+
   elementsWithUrls.forEach(element => {
     ['href', 'src'].forEach(attr => {
       const value = element.getAttribute(attr)
       if (value) {
         const lowerValue = value.toLowerCase().trim()
         // Check if URL starts with dangerous protocol
-        const isDangerous = DANGEROUS_PROTOCOLS.some(protocol => 
+        const isDangerous = DANGEROUS_PROTOCOLS.some(protocol =>
           lowerValue.startsWith(protocol)
         )
         if (isDangerous) {
@@ -77,10 +77,10 @@ function removeDangerousProtocols (html) {
 export const sanitize = (html, purifyOptions) => {
   // First pass: DOMPurify sanitization
   let sanitized = runSanitize(html, purifyOptions)
-  
+
   // Second pass: Remove dangerous protocols from href/src attributes
   sanitized = removeDangerousProtocols(sanitized)
-  
+
   return sanitized
 }
 
