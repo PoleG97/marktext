@@ -1,18 +1,27 @@
+import path from 'path'
+
 export const isOsx = process.platform === 'darwin'
 export const isWindows = process.platform === 'win32'
 export const isLinux = process.platform === 'linux'
 
+// Security hardening: Mitigate XSS to RCE vulnerabilities (Issue #3618 / CVE-2023-2318)
+// - nodeIntegration: false - Prevents renderer from accessing Node.js APIs directly
+// - contextIsolation: true - Isolates preload scripts from page context
+// - webSecurity: true - Enables web security features (CORS, CSP, etc.)
+// - preload - Uses secure IPC bridge via contextBridge for controlled API exposure
 export const editorWinOptions = Object.freeze({
   minWidth: 550,
   minHeight: 350,
   webPreferences: {
-    contextIsolation: false,
+    contextIsolation: true,
     // WORKAROUND: We cannot enable spellcheck if it was disabled during
     // renderer startup due to a bug in Electron (Electron#32755). We'll
     // enable it always and set the HTML spelling attribute to false.
     spellcheck: true,
-    nodeIntegration: true,
-    webSecurity: false
+    nodeIntegration: false,
+    webSecurity: true,
+    enableRemoteModule: false,
+    preload: path.join(__dirname, 'preload.js')
   },
   useContentSize: true,
   show: true,
@@ -27,11 +36,13 @@ export const preferencesWinOptions = Object.freeze({
   width: 950,
   height: 650,
   webPreferences: {
-    contextIsolation: false,
+    contextIsolation: true,
     // Always true to access native spellchecker.
     spellcheck: true,
-    nodeIntegration: true,
-    webSecurity: false
+    nodeIntegration: false,
+    webSecurity: true,
+    enableRemoteModule: false,
+    preload: path.join(__dirname, 'preload.js')
   },
   fullscreenable: false,
   fullscreen: false,
