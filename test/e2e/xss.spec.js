@@ -63,8 +63,7 @@ test.describe('Test XSS Vulnerabilities', async () => {
         hasProcessKill: typeof process?.kill === 'function',
         // Check if our secure API is exposed
         hasMtApi: typeof window.mt !== 'undefined',
-        hasOpenExternal: typeof window.mt?.openExternal === 'function',
-        hasGetAppVersion: typeof window.mt?.getAppVersion === 'function'
+        hasOpenExternal: typeof window.mt?.openExternal === 'function'
       }
     })
 
@@ -79,7 +78,6 @@ test.describe('Test XSS Vulnerabilities', async () => {
     // Our secure API should be available
     expect(nodeAccessTest.hasMtApi).toBeTruthy()
     expect(nodeAccessTest.hasOpenExternal).toBeTruthy()
-    expect(nodeAccessTest.hasGetAppVersion).toBeTruthy()
   })
 
   test('Dangerous URL protocols should be rejected', async () => {

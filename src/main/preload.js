@@ -124,14 +124,6 @@ window.mt = {
       throw new Error('Blocked dangerous URL protocol')
     }
     return shell.openExternal(url)
-  },
-
-  /**
-   * Gets the application version
-   * @returns {Promise<string>}
-   */
-  getAppVersion: () => {
-    return ipcRenderer.invoke('mt::get-app-version')
   }
 }
 
