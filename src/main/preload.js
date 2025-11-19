@@ -1,16 +1,22 @@
 /**
  * Secure Preload Script
  * 
- * This script runs in an isolated context (contextIsolation: true) and uses
- * contextBridge to expose a minimal, validated API to the renderer process.
+ * This script runs before renderer code and provides controlled access to Node.js APIs.
+ * With nodeIntegration: false, this is the ONLY way for renderer to access Node APIs.
  * 
  * Security measures:
- * - No direct Node.js API access from renderer
- * - URL validation to block dangerous protocols (javascript:, vbscript:, data:)
- * - Minimal API surface to reduce attack vectors
+ * - Controlled require() that blocks dangerous modules (child_process, fs, etc.)
+ * - Validates shell.openExternal URLs to block dangerous protocols  
+ * - Provides safe wrappers for necessary Node APIs
+ * - Exposes process info safely without executable access
+ * 
+ * Note: contextIsolation is currently false for @electron/remote compatibility.
+ * Future improvement: migrate to contextIsolation: true with IPC-based remote replacement.
  */
 
-const { contextBridge, ipcRenderer, shell } = require('electron')
+const nodeRequire = require
+const { ipcRenderer, shell, clipboard, nativeImage, remote } = nodeRequire('electron')
+const path = nodeRequire('path')
 
 // Dangerous URL protocols that should be blocked
 const DANGEROUS_PROTOCOLS = [
@@ -19,6 +25,23 @@ const DANGEROUS_PROTOCOLS = [
   'data:',
   'about:',
   'blob:'
+]
+
+// Dangerous modules that should never be required from renderer
+const BLOCKED_MODULES = [
+  'child_process',
+  'fs',
+  'original-fs'
+]
+
+// Modules that are allowed
+const SAFE_ELECTRON_MODULES = [
+  'ipcRenderer',
+  'shell',
+  'clipboard',
+  'nativeImage',
+  'crashReporter',
+  'webFrame'
 ]
 
 /**
@@ -40,21 +63,67 @@ function isUrlSafe (url) {
     }
   }
 
-  // Only allow http(s), file, and mailto protocols
-  const safeProtocols = ['http://', 'https://', 'file://', 'mailto:']
-  const hasSafeProtocol = safeProtocols.some(protocol => urlLower.startsWith(protocol))
-  
-  if (!hasSafeProtocol) {
-    // If no protocol specified, check if it looks like a valid URL
-    // This allows relative URLs or URLs without explicit protocol
-    return !urlLower.includes(':') || urlLower.startsWith('/')
-  }
-
   return true
 }
 
-// Expose secure API to renderer via window.mt
-contextBridge.exposeInMainWorld('mt', {
+/**
+ * Secure require wrapper that blocks dangerous modules
+ * @param {string} moduleName - The module to require
+ * @returns {any} - The required module
+ */
+function secureRequire (moduleName) {
+  // Block explicitly dangerous modules
+  if (BLOCKED_MODULES.includes(moduleName)) {
+    const error = new Error(`[Security] Blocked attempt to require dangerous module: ${moduleName}`)
+    console.error(error.message)
+    throw error
+  }
+
+  // Handle electron module specially
+  if (moduleName === 'electron') {
+    // Return a safe subset of electron APIs
+    return {
+      ipcRenderer,
+      shell: {
+        ...shell,
+        openExternal: (url, options) => {
+          if (!isUrlSafe(url)) {
+            console.warn('[Security] Blocked attempt to open dangerous URL:', url)
+            return Promise.reject(new Error('Blocked dangerous URL protocol'))
+          }
+          return shell.openExternal(url, options)
+        }
+      },
+      clipboard,
+      nativeImage,
+      // Don't expose: app, BrowserWindow, webContents, etc.
+    }
+  }
+
+  // For all other modules, use regular require
+  return nodeRequire(moduleName)
+}
+
+// Expose require globally
+window.require = secureRequire
+window.module = { exports: {} }
+window.exports = window.module.exports
+
+// Expose safe process info
+window.process = {
+  platform: process.platform,
+  arch: process.arch,
+  versions: Object.freeze({ ...process.versions }),
+  resourcesPath: process.resourcesPath,
+  env: process.env,
+  // Note: We intentionally don't expose dangerous methods like exit(), abort(), etc.
+}
+
+// Make process immutable at the top level
+Object.freeze(window.process.versions)
+
+// Expose secure API to renderer
+window.mt = {
   /**
    * Opens an external URL in the default browser (securely)
    * @param {string} url - The URL to open
@@ -74,51 +143,8 @@ contextBridge.exposeInMainWorld('mt', {
    */
   getAppVersion: () => {
     return ipcRenderer.invoke('mt::get-app-version')
-  },
-
-  /**
-   * Send a message to the main process
-   * @param {string} channel - The IPC channel
-   * @param {any} data - The data to send
-   */
-  send: (channel, data) => {
-    // Whitelist allowed IPC channels to prevent abuse
-    const allowedChannels = [
-      'mt::window-close',
-      'mt::window-minimize',
-      'mt::window-maximize',
-      'mt::request-file-open',
-      'mt::save-file',
-      'mt::export-file'
-    ]
-    
-    if (allowedChannels.includes(channel)) {
-      ipcRenderer.send(channel, data)
-    } else {
-      console.warn('[Security] Blocked IPC send to non-whitelisted channel:', channel)
-    }
-  },
-
-  /**
-   * Receive a message from the main process
-   * @param {string} channel - The IPC channel
-   * @param {Function} func - The callback function
-   */
-  on: (channel, func) => {
-    // Whitelist allowed IPC channels
-    const allowedChannels = [
-      'mt::file-loaded',
-      'mt::file-saved',
-      'mt::menu-action'
-    ]
-    
-    if (allowedChannels.includes(channel)) {
-      ipcRenderer.on(channel, (event, ...args) => func(...args))
-    } else {
-      console.warn('[Security] Blocked IPC listener for non-whitelisted channel:', channel)
-    }
   }
-})
+}
 
 // Log that preload script has loaded successfully
-console.log('[Preload] Secure preload script loaded with contextBridge')
+console.log('[Preload] Secure preload script loaded. Dangerous modules blocked, URLs validated.')

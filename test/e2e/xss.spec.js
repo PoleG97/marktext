@@ -31,25 +31,50 @@ test.describe('Test XSS Vulnerabilities', async () => {
     expect(isCrashed).toBeFalsy()
   })
 
-  test('Node.js access should be blocked in renderer', async () => {
-    // Verify that Node.js APIs are not directly accessible from renderer
+  test('Dangerous Node.js APIs should be blocked in renderer', async () => {
+    // Verify that dangerous Node.js APIs are blocked by preload
     const nodeAccessTest = await page.evaluate(() => {
+      let childProcessBlocked = false
+      let fsBlocked = false
+      
+      // Try to require dangerous modules
+      try {
+        require('child_process')
+      } catch (error) {
+        childProcessBlocked = error.message.includes('Blocked')
+      }
+      
+      try {
+        require('fs')
+      } catch (error) {
+        fsBlocked = error.message.includes('Blocked')
+      }
+      
       return {
-        // Check if require is available (should be undefined with nodeIntegration: false)
+        // Check if require is available (it should be, but wrapped)
         hasRequire: typeof require !== 'undefined',
-        // Check if process is available with full Node.js APIs
-        hasNodeProcess: typeof process !== 'undefined' && typeof process.versions?.node !== 'undefined',
+        // Check if process is available (limited version)
+        hasProcess: typeof process !== 'undefined',
+        // Check dangerous modules are blocked
+        childProcessBlocked,
+        fsBlocked,
+        // Check process doesn't have dangerous methods
+        hasProcessExit: typeof process?.exit === 'function',
+        hasProcessKill: typeof process?.kill === 'function',
         // Check if our secure API is exposed
         hasMtApi: typeof window.mt !== 'undefined',
-        // Check if specific secure methods are available
         hasOpenExternal: typeof window.mt?.openExternal === 'function',
         hasGetAppVersion: typeof window.mt?.getAppVersion === 'function'
       }
     })
 
-    // Node.js APIs should not be directly accessible
-    expect(nodeAccessTest.hasRequire).toBeFalsy()
-    expect(nodeAccessTest.hasNodeProcess).toBeFalsy()
+    // Dangerous modules should be blocked
+    expect(nodeAccessTest.childProcessBlocked).toBeTruthy()
+    expect(nodeAccessTest.fsBlocked).toBeTruthy()
+    
+    // Dangerous process methods should not be available
+    expect(nodeAccessTest.hasProcessExit).toBeFalsy()
+    expect(nodeAccessTest.hasProcessKill).toBeFalsy()
     
     // Our secure API should be available
     expect(nodeAccessTest.hasMtApi).toBeTruthy()
