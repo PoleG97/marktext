@@ -236,6 +236,278 @@ Please follow the [Linux installation instructions](docs/LINUX.md).
 
 All binaries for Linux, macOS and Windows can be downloaded from the [release page](https://github.com/marktext/marktext/releases/latest). If a version is unavailable for your system, then please open an [issue](https://github.com/marktext/marktext/issues).
 
+### Building from Source
+
+If you want to build MarkText from source (for development or to test the latest security patches), follow these comprehensive instructions for your platform.
+
+#### Prerequisites - All Platforms
+
+Before building, ensure you have:
+
+- **Node.js** `>=v16` but `<v17` ([download here](https://nodejs.org/))
+- **Yarn** package manager ([install instructions](https://yarnpkg.com/getting-started/install))
+- **Git** ([download here](https://git-scm.com/downloads))
+- **Python** `>=v3.6` (for node-gyp)
+
+#### Linux - Complete Installation from Source
+
+**1. Install System Dependencies**
+
+On **Debian/Ubuntu** based systems:
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  git \
+  nodejs \
+  npm \
+  python3 \
+  build-essential \
+  libx11-dev \
+  libxkbfile-dev \
+  libsecret-1-dev \
+  libfontconfig-dev
+```
+
+On **Fedora/RHEL/CentOS** based systems:
+```bash
+sudo dnf install -y \
+  git \
+  nodejs \
+  npm \
+  python3 \
+  gcc-c++ \
+  make \
+  libX11-devel \
+  libxkbfile-devel \
+  libsecret-devel \
+  fontconfig-devel
+```
+
+On **Arch Linux**:
+```bash
+sudo pacman -S git nodejs npm python3 base-devel libx11 libxkbfile libsecret fontconfig
+```
+
+**2. Install Yarn**
+```bash
+npm install -g yarn
+```
+
+**3. Clone and Build MarkText**
+```bash
+# Clone the repository
+git clone https://github.com/marktext/marktext.git
+cd marktext
+
+# Install dependencies
+yarn install
+
+# Build the application
+yarn run build
+
+# The built application will be in the build/ directory
+# For AppImage:
+chmod +x build/marktext-x86_64.AppImage
+./build/marktext-x86_64.AppImage
+
+# Or run in development mode (faster for testing):
+yarn run dev
+```
+
+**4. Optional: Create Desktop Entry**
+```bash
+# Copy the .desktop file
+curl -L https://raw.githubusercontent.com/marktext/marktext/develop/resources/linux/marktext.desktop \
+  -o ~/.local/share/applications/marktext.desktop
+
+# Update the Exec path to point to your AppImage
+# Edit ~/.local/share/applications/marktext.desktop and set:
+# Exec=/path/to/marktext-x86_64.AppImage
+
+# Update the desktop database
+update-desktop-database ~/.local/share/applications/
+```
+
+#### macOS - Complete Installation from Source
+
+**1. Install Homebrew** (if not already installed)
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+**2. Install Dependencies**
+```bash
+# Install Node.js and Yarn
+brew install node@16 yarn python@3
+
+# Ensure Node 16 is in your PATH
+echo 'export PATH="/usr/local/opt/node@16/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**3. Install Xcode Command Line Tools**
+```bash
+xcode-select --install
+```
+
+**4. Clone and Build MarkText**
+```bash
+# Clone the repository
+git clone https://github.com/marktext/marktext.git
+cd marktext
+
+# Install dependencies
+yarn install
+
+# Build for macOS
+yarn run release:mac
+
+# The .dmg file will be in the build/ directory
+# Or build just the app without installer (faster):
+yarn run build:bin
+# App will be in build/mac/MarkText.app
+
+# Or run in development mode (fastest for testing):
+yarn run dev
+```
+
+**5. Install the Application**
+```bash
+# If you built the .dmg:
+open build/marktext-x64.dmg
+# Then drag MarkText to Applications folder
+
+# If you built with build:bin:
+cp -r build/mac/MarkText.app /Applications/
+```
+
+**6. Security Note for Self-Built Apps**
+
+macOS may block the app because it's not signed. To allow it:
+```bash
+# Remove quarantine attribute
+xattr -cr /Applications/MarkText.app
+
+# Or go to System Preferences → Security & Privacy and click "Open Anyway"
+```
+
+#### Windows - Complete Installation from Source
+
+**1. Install Prerequisites**
+
+- **Node.js 16**: Download from [nodejs.org](https://nodejs.org/) and install the Windows Installer (.msi)
+- **Python 3**: Download from [python.org](https://www.python.org/downloads/) - **Important**: Check "Add Python to PATH" during installation
+- **Visual Studio Build Tools**: Required for native modules
+  ```powershell
+  # Using Chocolatey (recommended):
+  choco install visualstudio2019buildtools visualstudio2019-workload-vctools
+  
+  # Or download Visual Studio Build Tools manually:
+  # https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019
+  ```
+- **Git**: Download from [git-scm.com](https://git-scm.com/download/win)
+
+**2. Install Yarn**
+
+Open PowerShell or Command Prompt as Administrator:
+```powershell
+npm install -g yarn
+```
+
+**3. Clone and Build MarkText**
+
+Open PowerShell or Command Prompt:
+```powershell
+# Clone the repository
+git clone https://github.com/marktext/marktext.git
+cd marktext
+
+# Install dependencies
+yarn install
+
+# Build for Windows
+yarn run release:win
+
+# The installer will be in the build/ directory as marktext-setup.exe
+# Or build just the executable without installer (faster):
+yarn run build:bin
+# Executable will be in build/win-unpacked/MarkText.exe
+
+# Or run in development mode (fastest for testing):
+yarn run dev
+```
+
+**4. Install the Application**
+```powershell
+# If you built the installer:
+.\build\marktext-setup.exe
+
+# If you built with build:bin, you can run directly:
+.\build\win-unpacked\MarkText.exe
+```
+
+**Common Issues on Windows:**
+- **Python not found**: Ensure Python is in your PATH. Restart your terminal after installing Python.
+- **node-gyp errors**: Install Visual Studio Build Tools as shown in step 1.
+- **EACCES errors**: Run PowerShell as Administrator when installing global npm packages.
+
+#### Quick Build Commands Summary
+
+Once prerequisites are installed on any platform:
+
+```bash
+# Clone repository
+git clone https://github.com/marktext/marktext.git
+cd marktext
+
+# Install dependencies
+yarn install
+
+# Choose one build option:
+
+# 1. Full build with installers (recommended for distribution)
+yarn run build                # Builds for current platform
+yarn run release:linux        # Linux only (AppImage, deb, rpm)
+yarn run release:mac          # macOS only (dmg, zip)
+yarn run release:win          # Windows only (nsis, zip)
+
+# 2. Quick build without installer (faster, for testing)
+yarn run build:bin
+
+# 3. Development mode (fastest, with hot reload)
+yarn run dev
+```
+
+#### Verifying Your Build
+
+After building and running MarkText, verify the security hardening is working:
+
+1. Open MarkText
+2. Open Developer Tools (View → Toggle Developer Tools or `Ctrl+Shift+I` / `Cmd+Option+I`)
+3. In the Console tab, run these commands:
+
+```javascript
+// Should throw error: "Blocked attempt to require dangerous module"
+require('child_process')
+
+// Should throw error: "Blocked dangerous URL protocol"
+window.mt.openExternal('javascript:alert(1)')
+
+// Should return "undefined" (dangerous methods not available)
+typeof process.exit
+typeof process.kill
+```
+
+If all these checks behave as described, the security mitigations are working correctly.
+
+#### Build Artifacts Location
+
+After building, find your artifacts in the `build/` directory:
+
+- **Linux**: `marktext-x86_64.AppImage`, `marktext-amd64.deb`, `marktext-x86_64.rpm`, `marktext-x86_64.tar.gz`
+- **macOS**: `marktext-x64.dmg`, `marktext-x64-mac.zip`
+- **Windows**: `marktext-setup.exe`, `marktext-ia32-win.zip`, `marktext-x64-win.zip`
+
 ## Development
 
 If you wish to build MarkText yourself, please check out our [build instructions](docs/dev/BUILD.md).
