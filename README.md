@@ -451,6 +451,47 @@ yarn run dev
 - **node-gyp errors**: Install Visual Studio Build Tools as shown in step 1.
 - **EACCES errors**: Run PowerShell as Administrator when installing global npm packages.
 
+#### Platform-Native Build Commands
+
+> **Important**: For best results, build on the target platform (Linux builds from Linux, Windows builds from Windows). Cross-compilation is possible but may require additional setup.
+
+**Linux → Linux (Native Build)**
+```bash
+# Install dependencies
+yarn install
+
+# Build .deb package (Debian/Ubuntu)
+yarn run release:linux --linux deb:x64
+
+# Build AppImage
+yarn run release:linux --linux AppImage:x64
+
+# Build all Linux formats (AppImage, deb, rpm, tar.gz)
+yarn run release:linux
+```
+
+**Windows → Windows (Native Build)**
+```powershell
+# Install dependencies
+yarn install
+
+# Build Windows installer (NSIS)
+yarn run release:win
+
+# Build specific format only
+yarn run release:win --win nsis:x64
+yarn run release:win --win zip:x64
+```
+
+**macOS → macOS (Native Build)**
+```bash
+# Install dependencies
+yarn install
+
+# Build for macOS (x64 and arm64)
+yarn run release:mac
+```
+
 #### Quick Build Commands Summary
 
 Once prerequisites are installed on any platform:
@@ -465,7 +506,7 @@ yarn install
 
 # Choose one build option:
 
-# 1. Full build with installers (recommended for distribution)
+# 1. Full build with installers for your platform
 yarn run build                # Builds for current platform
 yarn run release:linux        # Linux only (AppImage, deb, rpm)
 yarn run release:mac          # macOS only (dmg, zip)
@@ -477,6 +518,51 @@ yarn run build:bin
 # 3. Development mode (fastest, with hot reload)
 yarn run dev
 ```
+
+### Security Testing
+
+MarkText includes comprehensive security testing to verify XSS to RCE mitigations (CVE-2023-2318).
+
+#### Running Security Tests
+
+```bash
+# Run all unit tests (includes security tests)
+yarn run unit
+
+# Run E2E security tests
+yarn run pack
+yarn run e2e
+
+# Run specific security test suites:
+# - test/unit/specs/security-preload.spec.js (URL and module validation)
+# - test/unit/specs/security-exec.spec.js (command whitelist and injection prevention)
+# - test/e2e/xss.spec.js (end-to-end XSS attack scenarios)
+```
+
+#### What the Security Tests Cover
+
+| Test Suite | Coverage |
+|------------|----------|
+| `security-preload.spec.js` | URL protocol validation (`javascript:`, `data:`, etc.), module blocking (`child_process`, `fs`) |
+| `security-exec.spec.js` | Command whitelist, shell injection prevention, directory traversal blocking |
+| `xss.spec.js` | E2E tests for XSS payloads, process API restrictions, secure API exposure |
+
+#### Running Vulnerability Analysis
+
+```bash
+# npm audit for dependency vulnerabilities
+npm audit
+
+# Or with yarn
+yarn audit
+
+# Fix automatically if possible
+npm audit fix
+```
+
+For detailed security documentation, see:
+- [SECURITY.md](SECURITY.md) - Security policy and hardening details
+- [TESTING_SECURITY.md](TESTING_SECURITY.md) - Manual testing procedures
 
 #### Verifying Your Build
 
