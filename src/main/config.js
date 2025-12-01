@@ -1,7 +1,15 @@
+import path from 'path'
+
 export const isOsx = process.platform === 'darwin'
 export const isWindows = process.platform === 'win32'
 export const isLinux = process.platform === 'linux'
 
+// Security hardening: Mitigate XSS to RCE vulnerabilities (Issue #3618 / CVE-2023-2318)
+// - nodeIntegration: false - Prevents renderer from accessing Node.js APIs directly (CRITICAL)
+// - contextIsolation: false - Required for @electron/remote compatibility (will be improved in future)
+// - webSecurity: true - Enables web security features (CORS, CSP, etc.)
+// - preload - Exposes controlled APIs and blocks dangerous operations
+// Note: Full contextIsolation requires refactoring @electron/remote usage throughout the app
 export const editorWinOptions = Object.freeze({
   minWidth: 550,
   minHeight: 350,
@@ -11,8 +19,9 @@ export const editorWinOptions = Object.freeze({
     // renderer startup due to a bug in Electron (Electron#32755). We'll
     // enable it always and set the HTML spelling attribute to false.
     spellcheck: true,
-    nodeIntegration: true,
-    webSecurity: false
+    nodeIntegration: false,
+    webSecurity: true,
+    preload: path.join(__dirname, 'preload.js')
   },
   useContentSize: true,
   show: true,
@@ -30,8 +39,9 @@ export const preferencesWinOptions = Object.freeze({
     contextIsolation: false,
     // Always true to access native spellchecker.
     spellcheck: true,
-    nodeIntegration: true,
-    webSecurity: false
+    nodeIntegration: false,
+    webSecurity: true,
+    preload: path.join(__dirname, 'preload.js')
   },
   fullscreenable: false,
   fullscreen: false,
